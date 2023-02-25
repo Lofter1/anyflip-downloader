@@ -125,9 +125,15 @@ func getPageCount(url *url.URL) (int, error) {
 		log.Fatalln(err)
 	}
 
-	r := regexp.MustCompile("bookConfig.totalPageCount=\"\\d+\"")
+	r := regexp.MustCompile("\"?(bookConfig\\.)?totalPageCount\"?[=:]\"?\\d+\"?")
 	match := r.FindString(string(configjs))
-	match = strings.Split(match, "=")[1]
+	if strings.Contains(match, "=") {
+		match = strings.Split(match, "=")[1]
+	} else if strings.Contains(match, ":") {
+		match = strings.Split(match, ":")[1]
+	} else {
+		return 0, errors.New("could not find page count")
+	}
 	match = strings.ReplaceAll(match, "\"", "")
 	return strconv.Atoi(match)
 }
