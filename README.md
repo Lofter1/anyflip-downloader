@@ -7,7 +7,7 @@ Only use this tool to download books that officially allow PDFs to be downloaded
 ## Usage
 
 ```sh
->anyflip-downloader <url to book>
+$ anyflip-downloader <url to book>
 ```
 
 ## Installation
@@ -17,5 +17,5 @@ Currently, only installation through source or the `go install` command is suppo
 To use the `go install` command, just run 
 
 ```sh
-go install github.com/Lofter1/anyflip-downloader@latest
+$ go install github.com/Lofter1/anyflip-downloader@latest
 ```
