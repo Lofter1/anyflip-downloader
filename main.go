@@ -106,27 +106,13 @@ func downloadImages(url *url.URL, pageCount int, downloadFolder string) error {
 }
 
 func getPageCount(url *url.URL) (int, error) {
-	configjsURL, err := url.Parse("https://online.anyflip.com")
+	configjs, err := downloadConfigJSFile(url)
 	if err != nil {
 		return 0, err
-	}
-	configjsURL.Path = path.Join(url.Path, "mobile", "javascript", "config.js")
-	resp, err := http.Get(configjsURL.String())
-	if err != nil {
-		return 0, err
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		return 0, errors.New("Received non-200 response: " + resp.Status)
-	}
-
-	configjs, err := io.ReadAll(resp.Body)
-	if err != nil {
-		log.Fatalln(err)
 	}
 
 	r := regexp.MustCompile("\"?(bookConfig\\.)?totalPageCount\"?[=:]\"?\\d+\"?")
-	match := r.FindString(string(configjs))
+	match := r.FindString(configjs)
 	if strings.Contains(match, "=") {
 		match = strings.Split(match, "=")[1]
 	} else if strings.Contains(match, ":") {
@@ -136,4 +122,25 @@ func getPageCount(url *url.URL) (int, error) {
 	}
 	match = strings.ReplaceAll(match, "\"", "")
 	return strconv.Atoi(match)
+}
+
+func downloadConfigJSFile(bookURL *url.URL) (string, error) {
+	configjsURL, err := url.Parse("https://online.anyflip.com")
+	if err != nil {
+		return "", err
+	}
+	configjsURL.Path = path.Join(bookURL.Path, "mobile", "javascript", "config.js")
+	resp, err := http.Get(configjsURL.String())
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return "", errors.New("received non-200 response:" + resp.Status)
+	}
+	configjs, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+	return string(configjs), nil
 }
