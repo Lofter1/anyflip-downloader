@@ -1,4 +1,7 @@
-# anyflip-downloader
+# anyflip-downloader 
+[![build](https://github.com/Lofter1/anyflip-downloader/actions/workflows/build.yml/badge.svg)](https://github.com/Lofter1/anyflip-downloader/actions/workflows/build.yml) 
+[![goreleaser](https://github.com/Lofter1/anyflip-downloader/actions/workflows/release.yml/badge.svg)](https://github.com/Lofter1/anyflip-downloader/actions/workflows/release.yml)
+
 Download anyflip books as PDF
 
 ## Disclaimer
@@ -12,9 +15,11 @@ $ anyflip-downloader <url to book>
 
 ## Installation
 
-Currently, only installation through source or the `go install` command is supported. In both cases, the go tools are required.
+You can either download the executable from the release page, install from source or install with the `go install` command, which is the recommended way, as it enables easy updating.
 
-To use the `go install` command, just run 
+For `go install` and installation through source, the [go tools](https://go.dev/doc/install) are required.
+
+To use the `go install` command, just run
 
 ```sh
 $ go install github.com/Lofter1/anyflip-downloader@latest
