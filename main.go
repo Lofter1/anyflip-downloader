@@ -23,8 +23,22 @@ func main() {
 		log.Fatal(err)
 	}
 
+	bookUrlPathElements := strings.Split(anyflipURL.Path, "/")
+	// secect only 1st and 2nd element of url to avoid mobile on online.anyflip urls
+	// as path starts with / offset index by 1
+	anyflipURL.Path = path.Join("/", bookUrlPathElements[1], bookUrlPathElements[2])
+
 	downloadFolder := path.Base(anyflipURL.String())
 	outputFile := path.Base(anyflipURL.String()) + ".pdf"
+
+	// parse --extract_title to automatically rename pdf to it's title from anyflip
+	if len(os.Args) > 2 && os.Args[2] == "--extract_title" {
+		outputFile, err = getBookTitle(anyflipURL)
+		if err != nil {
+			log.Fatal(err)
+		}
+		outputFile += ".pdf"
+	}
 
 	fmt.Println("Preparing to download")
 	pageCount, err := getPageCount(anyflipURL)
@@ -69,7 +83,6 @@ func downloadImages(url *url.URL, pageCount int, downloadFolder string) error {
 		progressbar.OptionShowCount(),
 		progressbar.OptionSetDescription("Downloading"),
 	)
-
 	downloadURL, err := url.Parse("https://online.anyflip.com")
 	if err != nil {
 		return err
@@ -105,12 +118,22 @@ func downloadImages(url *url.URL, pageCount int, downloadFolder string) error {
 	return nil
 }
 
+func getBookTitle(url *url.URL) (string, error) {
+	configjs, err := downloadConfigJSFile(url)
+	if err != nil {
+		return url.String(), err
+	}
+	r := regexp.MustCompile("\"?(bookConfig\\.)?bookTitle\"?=\"(.*?)\"")
+	match := r.FindString(configjs)
+	match = match[22 : len(match)-1]
+	return match, nil
+}
+
 func getPageCount(url *url.URL) (int, error) {
 	configjs, err := downloadConfigJSFile(url)
 	if err != nil {
 		return 0, err
 	}
-
 	r := regexp.MustCompile("\"?(bookConfig\\.)?totalPageCount\"?[=:]\"?\\d+\"?")
 	match := r.FindString(configjs)
 	if strings.Contains(match, "=") {

@@ -1,16 +1,24 @@
-# anyflip-downloader 
-[![build](https://github.com/Lofter1/anyflip-downloader/actions/workflows/build.yml/badge.svg)](https://github.com/Lofter1/anyflip-downloader/actions/workflows/build.yml) 
+# anyflip-downloader
+
+[![build](https://github.com/Lofter1/anyflip-downloader/actions/workflows/build.yml/badge.svg)](https://github.com/Lofter1/anyflip-downloader/actions/workflows/build.yml)
 [![goreleaser](https://github.com/Lofter1/anyflip-downloader/actions/workflows/release.yml/badge.svg)](https://github.com/Lofter1/anyflip-downloader/actions/workflows/release.yml)
 
 Download anyflip books as PDF
 
 ## Disclaimer
+
 Only use this tool to download books that officially allow PDFs to be downloaded.
 
 ## Usage
 
 ```sh
 $ anyflip-downloader <url to book>
+```
+
+To extract the name and use it as the pdf file name:
+
+```sh
+$ anyflip-downloader <url to book> --extract_name
 ```
 
 ## Installation
