@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"flag"
 	"fmt"
 	"io"
 	"log"
@@ -18,6 +19,9 @@ import (
 )
 
 func main() {
+
+	extractTitle := flag.Bool("extrectTitle", true, "used to decide if legacy naming system is used or title is extracted from anyflip")
+	customName := flag.String("customName", "", "used to set output file name, overides extractTitle")
 	anyflipURL, err := url.Parse(os.Args[1])
 	if err != nil {
 		log.Fatal(err)
@@ -31,17 +35,30 @@ func main() {
 	downloadFolder := path.Base(anyflipURL.String())
 	outputFile := path.Base(anyflipURL.String()) + ".pdf"
 
-	// parse --extract_title to automatically rename pdf to it's title from anyflip
-	if len(os.Args) > 2 && os.Args[2] == "--extract_title" {
-		outputFile, err = getBookTitle(anyflipURL)
+	configjs, err := downloadConfigJSFile(anyflipURL)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	//use custom name for output
+	if *customName != "" {
+		outputFile = *customName
+	}
+
+	// use --extract_title to automatically rename pdf to it's title from anyflip, default true
+	if *extractTitle && *customName == "" {
+		of, err := getBookTitle(anyflipURL, configjs)
 		if err != nil {
 			log.Fatal(err)
 		}
-		outputFile += ".pdf"
+		// fallback to old naming
+		if of != "" {
+			outputFile = of + ".pdf"
+		}
 	}
 
 	fmt.Println("Preparing to download")
-	pageCount, err := getPageCount(anyflipURL)
+	pageCount, err := getPageCount(anyflipURL, configjs)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -118,22 +135,15 @@ func downloadImages(url *url.URL, pageCount int, downloadFolder string) error {
 	return nil
 }
 
-func getBookTitle(url *url.URL) (string, error) {
-	configjs, err := downloadConfigJSFile(url)
-	if err != nil {
-		return url.String(), err
-	}
+func getBookTitle(url *url.URL, configjs string) (string, error) {
 	r := regexp.MustCompile("\"?(bookConfig\\.)?bookTitle\"?=\"(.*?)\"")
 	match := r.FindString(configjs)
 	match = match[22 : len(match)-1]
 	return match, nil
 }
 
-func getPageCount(url *url.URL) (int, error) {
-	configjs, err := downloadConfigJSFile(url)
-	if err != nil {
-		return 0, err
-	}
+func getPageCount(url *url.URL, configjs string) (int, error) {
+
 	r := regexp.MustCompile("\"?(bookConfig\\.)?totalPageCount\"?[=:]\"?\\d+\"?")
 	match := r.FindString(configjs)
 	if strings.Contains(match, "=") {
