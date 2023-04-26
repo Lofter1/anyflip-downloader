@@ -27,10 +27,10 @@ func main() {
 		log.Fatal(err)
 	}
 
-	bookUrlPathElements := strings.Split(anyflipURL.Path, "/")
+	bookURLPathElements := strings.Split(anyflipURL.Path, "/")
 	// secect only 1st and 2nd element of url to avoid mobile on online.anyflip urls
 	// as path starts with / offset index by 1
-	anyflipURL.Path = path.Join("/", bookUrlPathElements[1], bookUrlPathElements[2])
+	anyflipURL.Path = path.Join("/", bookURLPathElements[1], bookURLPathElements[2])
 
 	downloadFolder := path.Base(anyflipURL.String())
 	outputFile := path.Base(anyflipURL.String()) + ".pdf"
