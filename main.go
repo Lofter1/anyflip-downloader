@@ -48,11 +48,7 @@ func main() {
 	// use --extract_title to automatically rename pdf to it's title from anyflip, default true
 	if *extractTitle && *customName == "" {
 		of, err := getBookTitle(anyflipURL, configjs)
-		if err != nil {
-			log.Fatal(err)
-		}
-		// fallback to old naming
-		if of != "" {
+		if err != nil || of != "" {
 			outputFile = of + ".pdf"
 		}
 	}
@@ -137,7 +133,18 @@ func downloadImages(url *url.URL, pageCount int, downloadFolder string) error {
 
 func getBookTitle(url *url.URL, configjs string) (string, error) {
 	r := regexp.MustCompile("\"?(bookConfig\\.)?bookTitle\"?=\"(.*?)\"")
+
 	match := r.FindString(configjs)
+	if match == "" {
+		r = regexp.MustCompile(`"meta":\{"title":"(.*?)"`)
+	}
+
+	// fmt.Println(configjs)
+	match = r.FindString(configjs)
+	if match == "" {
+		return url.String(), errors.New("no title found")
+	}
+
 	match = match[22 : len(match)-1]
 	return match, nil
 }
