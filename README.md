@@ -15,10 +15,12 @@ Only use this tool to download books that officially allow PDFs to be downloaded
 $ anyflip-downloader <url to book>
 ```
 
-To extract the name and use it as the pdf file name:
+### Set title manually
+
+If you do not want to use the book title from anyflip, you can change it using the `-title` flag.
 
 ```sh
-$ anyflip-downloader <url to book> --extract_name
+$ anyflip-downloader <url to book> -title <your book title>
 ```
 
 ## Installation
