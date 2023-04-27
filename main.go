@@ -18,46 +18,29 @@ import (
 	"github.com/schollz/progressbar/v3"
 )
 
+var title string
+var pageCount int
+
+func init() {
+	flag.StringVar(&title, "title", "", "Specifies the name of the generated PDF document (uses book title if not specified)")
+}
+
 func main() {
-
-	extractTitle := flag.Bool("extrectTitle", true, "used to decide if legacy naming system is used or title is extracted from anyflip")
-	customName := flag.String("customName", "", "used to set output file name, overides extractTitle")
-	anyflipURL, err := url.Parse(os.Args[1])
+	flag.Parse()
+	anyflipURL, err := url.Parse(flag.Args()[0])
 	if err != nil {
 		log.Fatal(err)
-	}
-
-	bookURLPathElements := strings.Split(anyflipURL.Path, "/")
-	// secect only 1st and 2nd element of url to avoid mobile on online.anyflip urls
-	// as path starts with / offset index by 1
-	anyflipURL.Path = path.Join("/", bookURLPathElements[1], bookURLPathElements[2])
-
-	downloadFolder := path.Base(anyflipURL.String())
-	outputFile := path.Base(anyflipURL.String()) + ".pdf"
-
-	configjs, err := downloadConfigJSFile(anyflipURL)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	//use custom name for output
-	if *customName != "" {
-		outputFile = *customName
-	}
-
-	// use --extract_title to automatically rename pdf to it's title from anyflip, default true
-	if *extractTitle && *customName == "" {
-		of, err := getBookTitle(anyflipURL, configjs)
-		if err != nil || of != "" {
-			outputFile = of + ".pdf"
-		}
 	}
 
 	fmt.Println("Preparing to download")
-	pageCount, err := getPageCount(anyflipURL, configjs)
+	err = prepareDownload(anyflipURL)
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	downloadFolder := title
+	outputFile := title + ".pdf"
+
 	err = downloadImages(anyflipURL, pageCount, downloadFolder)
 	if err != nil {
 		log.Fatal(err)
@@ -69,6 +52,30 @@ func main() {
 	}
 
 	os.RemoveAll(downloadFolder)
+}
+
+func prepareDownload(anyflipURL *url.URL) error {
+	sanitizeURL(anyflipURL)
+	configjs, err := downloadConfigJSFile(anyflipURL)
+	if err != nil {
+		return err
+	}
+	println(configjs)
+
+	if title == "" {
+		title, err = getBookTitle(configjs)
+		if err != nil {
+			title = path.Base(anyflipURL.String())
+		}
+	}
+
+	pageCount, err = getPageCount(configjs)
+	return err
+}
+
+func sanitizeURL(anyflipURL *url.URL) {
+	bookURLPathElements := strings.Split(anyflipURL.Path, "/")
+	anyflipURL.Path = path.Join("/", bookURLPathElements[1], bookURLPathElements[2])
 }
 
 func createPDF(outputFile string, imageDir string) error {
@@ -131,28 +138,26 @@ func downloadImages(url *url.URL, pageCount int, downloadFolder string) error {
 	return nil
 }
 
-func getBookTitle(url *url.URL, configjs string) (string, error) {
-	r := regexp.MustCompile("\"?(bookConfig\\.)?bookTitle\"?=\"(.*?)\"")
-
+func getBookTitle(configjs string) (string, error) {
+	r := regexp.MustCompile(`("?(bookConfig.)?bookTitle"?[=]"(.*?)")|"title":"(.*?)"`)
 	match := r.FindString(configjs)
-	if match == "" {
-		r = regexp.MustCompile(`"meta":\{"title":"(.*?)"`)
-	}
 
-	// fmt.Println(configjs)
-	match = r.FindString(configjs)
-	if match == "" {
-		return url.String(), errors.New("no title found")
+	if strings.Contains(match, "=") {
+		match = strings.Split(match, "=")[1]
+	} else if strings.Contains(match, ":") {
+		match = strings.Split(match, ":")[1]
+	} else {
+		return "", errors.New("could not find book title")
 	}
+	match = strings.ReplaceAll(match, "\"", "")
 
-	match = match[22 : len(match)-1]
 	return match, nil
 }
 
-func getPageCount(url *url.URL, configjs string) (int, error) {
-
+func getPageCount(configjs string) (int, error) {
 	r := regexp.MustCompile("\"?(bookConfig\\.)?totalPageCount\"?[=:]\"?\\d+\"?")
 	match := r.FindString(configjs)
+
 	if strings.Contains(match, "=") {
 		match = strings.Split(match, "=")[1]
 	} else if strings.Contains(match, ":") {
@@ -160,6 +165,7 @@ func getPageCount(url *url.URL, configjs string) (int, error) {
 	} else {
 		return 0, errors.New("could not find page count")
 	}
+
 	match = strings.ReplaceAll(match, "\"", "")
 	return strconv.Atoi(match)
 }
