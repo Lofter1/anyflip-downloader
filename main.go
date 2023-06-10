@@ -60,7 +60,6 @@ func prepareDownload(anyflipURL *url.URL) error {
 	if err != nil {
 		return err
 	}
-	println(configjs)
 
 	if title == "" {
 		title, err = getBookTitle(configjs)
