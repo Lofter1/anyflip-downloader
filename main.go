@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/tls"
 	"errors"
 	"flag"
 	"fmt"
@@ -20,9 +21,11 @@ import (
 
 var title string
 var pageCount int
+var insecure bool
 
 func init() {
 	flag.StringVar(&title, "title", "", "Specifies the name of the generated PDF document (uses book title if not specified)")
+	flag.BoolVar(&insecure, "insecure", false, "Skip certificate validation")
 }
 
 func main() {
@@ -30,6 +33,11 @@ func main() {
 	anyflipURL, err := url.Parse(flag.Args()[0])
 	if err != nil {
 		log.Fatal(err)
+	}
+
+	if insecure {
+		fmt.Println("You enabled insecure downloads. This disables security checks. Stay safe!")
+		http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	}
 
 	fmt.Println("Preparing to download")
