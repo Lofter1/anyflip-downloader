@@ -23,6 +23,14 @@ If you do not want to use the book title from anyflip, you can change it using t
 $ anyflip-downloader <url to book> -title <your book title>
 ```
 
+### Specify temporary download folder path
+
+The default temporary download folder path will be the title of the book. However, in certain situations, you might want to change the temporary download folder. For this, the `-temp-download-folder` flag exists. This folder will be deleted after a successful download.
+
+```sh
+$ anyflip-downloader <url to book> -temp-download-folder <temp folder name>
+```
+
 ## Installation
 
 You can either download the executable from the release page, install from source or install with the `go install` command, which is the recommended way, as it enables easy updating.

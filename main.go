@@ -20,10 +20,13 @@ import (
 )
 
 var title string
-var pageCount int
+var tempDownloadFolder string
 var insecure bool
 
+var pageCount int
+
 func init() {
+	flag.StringVar(&tempDownloadFolder, "temp-download-folder", "", "Specifies the name of the temporary download folder")
 	flag.StringVar(&title, "title", "", "Specifies the name of the generated PDF document (uses book title if not specified)")
 	flag.BoolVar(&insecure, "insecure", false, "Skip certificate validation")
 }
@@ -46,20 +49,22 @@ func main() {
 		log.Fatal(err)
 	}
 
-	downloadFolder := title
+	if tempDownloadFolder == "" {
+		tempDownloadFolder = title
+	}
 	outputFile := title + ".pdf"
 
-	err = downloadImages(anyflipURL, pageCount, downloadFolder)
+	err = downloadImages(anyflipURL, pageCount, tempDownloadFolder)
 	if err != nil {
 		log.Fatal(err)
 	}
 	fmt.Println("Converting to pdf")
-	err = createPDF(outputFile, downloadFolder)
+	err = createPDF(outputFile, tempDownloadFolder)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	os.RemoveAll(downloadFolder)
+	os.RemoveAll(tempDownloadFolder)
 }
 
 func prepareDownload(anyflipURL *url.URL) error {
