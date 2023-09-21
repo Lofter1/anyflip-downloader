@@ -3,6 +3,7 @@ module github.com/Lofter1/anyflip-downloader
 go 1.19
 
 require (
+	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2
 	github.com/br3w0r/goitopdf v1.2.1
 	github.com/schollz/progressbar/v3 v3.13.1
 )

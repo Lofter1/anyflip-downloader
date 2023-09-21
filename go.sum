@@ -1,3 +1,5 @@
+github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2 h1:DklsrG3dyBCFEj5IhUbnKptjxatkF07cF2ak3yi77so=
+github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2/go.mod h1:WaHUgvxTVq04UNunO+XhnAqY/wQc+bxr74GqbsZ/Jqw=
 github.com/boombuler/barcode v1.0.0/go.mod h1:paBWMcWSl3LHKBqUq+rly7CNSldXjb2rDl3JlRe0mD8=
 github.com/br3w0r/goitopdf v1.2.1 h1:bWD3l3dTL/Fc8o05x0vp6Ja40v9Bk8EZT9FeJ9ndZGA=
 github.com/br3w0r/goitopdf v1.2.1/go.mod h1:ZEg3e1Pb473DCugtw4V5VFtYss7/zthrbQSMLyzpYuo=

@@ -15,6 +15,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/asaskevich/govalidator"
 	"github.com/br3w0r/goitopdf/itopdf"
 	"github.com/schollz/progressbar/v3"
 )
@@ -49,6 +50,7 @@ func main() {
 		log.Fatal(err)
 	}
 
+	title = govalidator.SafeFileName(title)
 	if tempDownloadFolder == "" {
 		tempDownloadFolder = title
 	}
