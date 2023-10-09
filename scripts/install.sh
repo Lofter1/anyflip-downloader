@@ -25,7 +25,9 @@ fi
 echo "Detected $platform $architecture"
 
 latest_release=$(curl -s "$api_url")
-download_url=$(echo "$latest_release" | jq -r ".assets[] | select(.name | contains(\"$platform\")) | select(.name | contains(\"$architecture\")) | .browser_download_url")
+grep_pattern="\"browser_download_url\": \"[^\"]*${platform}_${architecture}[^\"]*\""
+download_url=$(echo "$latest_release" | grep -o "$grep_pattern" | cut -d '"' -f 4)
+echo $download_url
 
 echo "Found latest release at $download_url"
 
