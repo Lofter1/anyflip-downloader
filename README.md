@@ -9,10 +9,36 @@ Download anyflip books as PDF
 
 Only use this tool to download books that officially allow PDFs to be downloaded.
 
+## Installation
+You can install this tool in multiple ways. Using the installation script or the go install command.
+
+The install scripts are the suggested installation method for most users. 
+
+### Install scripts
+
+#### Linux/MacOS
+Open the terminal and execute
+```sh
+curl -L https://raw.githubusercontent.com/Lofter1/anyflip-downloader/main/scripts/install.sh | /usr/bin/env bash
+```
+
+#### Windows
+Open PowerShell and execute
+```PowerShell
+. { iwr -useb https://raw.githubusercontent.com/Lofter1/anyflip-downloader/main/scripts/install.ps1 } | iex;
+```
+
+### Go install
+For `go install`, the [go tools](https://go.dev/doc/install) are required.
+
+```sh
+go install github.com/Lofter1/anyflip-downloader@latest
+```
+
 ## Usage
 
 ```sh
-$ anyflip-downloader <url to book>
+anyflip-downloader <url to book>
 ```
 
 ### Set title manually
@@ -20,7 +46,7 @@ $ anyflip-downloader <url to book>
 If you do not want to use the book title from anyflip, you can change it using the `-title` flag.
 
 ```sh
-$ anyflip-downloader <url to book> -title <your book title>
+anyflip-downloader <url to book> -title <your book title>
 ```
 
 ### Specify temporary download folder path
@@ -28,17 +54,6 @@ $ anyflip-downloader <url to book> -title <your book title>
 The default temporary download folder path will be the title of the book. However, in certain situations, you might want to change the temporary download folder. For this, the `-temp-download-folder` flag exists. This folder will be deleted after a successful download.
 
 ```sh
-$ anyflip-downloader <url to book> -temp-download-folder <temp folder name>
+anyflip-downloader <url to book> -temp-download-folder <temp folder name>
 ```
 
-## Installation
-
-You can either download the executable from the release page, install from source or install with the `go install` command, which is the recommended way, as it enables easy updating.
-
-For `go install` and installation through source, the [go tools](https://go.dev/doc/install) are required.
-
-To use the `go install` command, just run
-
-```sh
-$ go install github.com/Lofter1/anyflip-downloader@latest
-```
