@@ -5,6 +5,8 @@
 
 Download anyflip books as PDF
 
+![Demo](/assets/demo.gif)
+
 ## Disclaimer
 
 Only use this tool to download books that officially allow PDFs to be downloaded.
