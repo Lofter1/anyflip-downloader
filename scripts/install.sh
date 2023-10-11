@@ -36,15 +36,28 @@ if [ -z "$download_url" ]; then
     exit 1
 fi
 
+# Downloading
 temp_dir=$(mktemp -d)
 temp_file="$temp_dir/anyflip-downloader.tar.gz"
 
 echo "Download into $temp_file"
 curl -L "$download_url" > "$temp_file"
+
+# Create application and install dir if it doesn't already exist
+mkdir -p "$application_dir"
+mkdir -p "$install_dir"
+
+# Installing
 echo "Unpacking into $application_dir"
-mkdir "$application_dir" 2>/dev/null
 tar -zxvf "$temp_file" -C "$application_dir"
 echo "Move binary into $install_dir"
 mv "$application_dir/anyflip-downloader" "$install_dir"
 
+
+# Add install dir to path if it is not already part of path
+if [ ":$PATH:" != *"${install_dir}"* ]; then
+  PATH="${install_dir}:${PATH}"
+fi
+
+# Cleanup
 rm -rf "$temp_dir"
