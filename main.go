@@ -92,6 +92,9 @@ func prepareDownload(anyflipURL *url.URL) (*flipbook, error) {
 
 	newFlipbook.title = govalidator.SafeFileName(title)
 	newFlipbook.pageCount, err = getPageCount(configjs)
+
+	println(newFlipbook.pageCount)
+	
 	pageFileNames := getPageFileNames(configjs)
 
 	downloadURL, _ := url.Parse("https://online.anyflip.com/")
