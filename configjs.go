@@ -43,7 +43,7 @@ func getBookTitle(configjs string) (string, error) {
 }
 
 func getPageCount(configjs string) (int, error) {
-	return 130
+	return 130, nil
 	
 	r := regexp.MustCompile("\"?(bookConfig\\.)?totalPageCount\"?[=:]\"?\\d+\"?")
 	match := r.FindString(configjs)
