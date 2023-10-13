@@ -1,7 +1,7 @@
 # anyflip-downloader
 
-[![build](https://github.com/Lofter1/anyflip-downloader/actions/workflows/build.yml/badge.svg)](https://github.com/Lofter1/anyflip-downloader/actions/workflows/build.yml)
-[![goreleaser](https://github.com/Lofter1/anyflip-downloader/actions/workflows/release.yml/badge.svg)](https://github.com/Lofter1/anyflip-downloader/actions/workflows/release.yml)
+[![build](https://github.com/elchinbaba/anyflip-downloader/actions/workflows/build.yml/badge.svg)](https://github.com/elchinbaba/anyflip-downloader/actions/workflows/build.yml)
+[![goreleaser](https://github.com/elchinbaba/anyflip-downloader/actions/workflows/release.yml/badge.svg)](https://github.com/elchinbaba/anyflip-downloader/actions/workflows/release.yml)
 
 Download anyflip books as PDF
 
@@ -21,20 +21,20 @@ The install scripts are the suggested installation method for most users.
 #### Linux/MacOS
 Open the terminal and execute
 ```sh
-curl -L https://raw.githubusercontent.com/Lofter1/anyflip-downloader/main/scripts/install.sh | /usr/bin/env bash
+curl -L https://raw.githubusercontent.com/elchinbaba/anyflip-downloader/elchinbaba-patch-1/scripts/install.sh | /usr/bin/env bash
 ```
 
 #### Windows
 Open PowerShell and execute
 ```PowerShell
-. { iwr -useb https://raw.githubusercontent.com/Lofter1/anyflip-downloader/main/scripts/install.ps1 } | iex;
+. { iwr -useb https://raw.githubusercontent.com/elchinbaba/anyflip-downloader/elchinbaba-patch-1/scripts/install.ps1 } | iex;
 ```
 
 ### Go install
 For `go install`, the [go tools](https://go.dev/doc/install) are required.
 
 ```sh
-go install github.com/Lofter1/anyflip-downloader@latest
+go install github.com/elchinbaba/anyflip-downloader@latest
 ```
 
 ## Usage
