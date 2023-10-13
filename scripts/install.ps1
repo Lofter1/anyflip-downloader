@@ -1,5 +1,5 @@
 # Define variables for the repository and tar.gz file name
-$repoOwner = "Lofter1"
+$repoOwner = "elchinbaba"
 $repoName = "anyflip-downloader"
 $tarGzFileName = "anyflip-downloader.tar.gz"
 
