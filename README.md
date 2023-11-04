@@ -48,7 +48,7 @@ anyflip-downloader <url to book>
 If you do not want to use the book title from anyflip, you can change it using the `-title` flag.
 
 ```sh
-anyflip-downloader <url to book> -title <your book title>
+anyflip-downloader -title <your book title> <url to book>
 ```
 
 ### Specify temporary download folder path
@@ -56,6 +56,6 @@ anyflip-downloader <url to book> -title <your book title>
 The default temporary download folder path will be the title of the book. However, in certain situations, you might want to change the temporary download folder. For this, the `-temp-download-folder` flag exists. This folder will be deleted after a successful download.
 
 ```sh
-anyflip-downloader <url to book> -temp-download-folder <temp folder name>
+anyflip-downloader -temp-download-folder <temp folder name> <url to book>
 ```
 
