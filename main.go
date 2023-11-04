@@ -117,6 +117,9 @@ func sanitizeURL(anyflipURL *url.URL) {
 }
 
 func createPDF(outputFile string, imageDir string) error {
+	outputFile = strings.ReplaceAll(outputFile, "'", "")
+	outputFile = strings.ReplaceAll(outputFile, "\\", "")
+
 	pdf := itopdf.NewInstance()
 	err := pdf.WalkDir(imageDir, nil)
 	if err != nil {
