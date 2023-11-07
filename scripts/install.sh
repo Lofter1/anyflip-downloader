@@ -23,7 +23,7 @@ else
 fi
 
 if [["$architecture" == "x86_64"]]; then
-  $architecture = "amd64"
+  $architecture="amd64"
 fi
 
 echo "Detected $platform $architecture"
