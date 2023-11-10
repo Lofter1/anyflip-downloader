@@ -53,7 +53,7 @@ tar -xzvf $tarGzFilePath -C $installFolder
 Remove-Item -Path $tarGzFilePath -Force
 
 # Optionally, add the installation folder to the system's PATH environment variable
-[System.Environment]::SetEnvironmentVariable('Path', $env:Path + ";$installFolder", [System.EnvironmentVariableTarget]::Machine)
+[System.Environment]::SetEnvironmentVariable('Path', $env:Path + ";$installFolder")
 
 # Display a message indicating the installation is complete
 Write-Host "anyflip-downloader has been installed to $installFolder."
