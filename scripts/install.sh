@@ -22,7 +22,7 @@ else
     exit 1
 fi
 
-if [["$architecture" == "x86_64"]]; then
+if [[ "$architecture" == "x86_64" ]]; then
   architecture="amd64"
 fi
 
