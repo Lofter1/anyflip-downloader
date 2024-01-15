@@ -22,7 +22,7 @@ else
     exit 1
 fi
 
-if [["$architecture" == "x86_64"]]; then
+if [[ "$architecture" == "x86_64" ]]; then
   architecture="amd64"
 fi
 
@@ -31,7 +31,7 @@ echo "Detected $platform $architecture"
 latest_release=$(curl -s "$api_url")
 grep_pattern="\"browser_download_url\": \"[^\"]*${platform}_${architecture}[^\"]*\""
 download_url=$(echo "$latest_release" | grep -o "$grep_pattern" | cut -d '"' -f 4)
-echo $download_url
+echo "$download_url"
 
 echo "Found latest release at $download_url"
 
@@ -59,7 +59,7 @@ mv "$application_dir/anyflip-downloader" "$install_dir"
 
 
 # Add install dir to path if it is not already part of path
-if [ ":$PATH:" != *"${install_dir}"* ]; then
+if [[ ":$PATH:" != *"${install_dir}"* ]]; then
   PATH="${install_dir}:${PATH}"
 fi
 
