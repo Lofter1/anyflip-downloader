@@ -23,6 +23,8 @@ Open the terminal and execute
 ```sh
 curl -L https://raw.githubusercontent.com/Lofter1/anyflip-downloader/main/scripts/install.sh | /usr/bin/env bash
 ```
+##### Setup path
+When encountering the error "Command not found": make sure your path variable contains `$HOME/.local/bin` (edit this in your .zshrc or .bashrc depending on your editor)
 
 #### Windows
 Open PowerShell and execute
