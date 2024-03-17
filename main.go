@@ -22,6 +22,7 @@ import (
 var title string
 var tempDownloadFolder string
 var insecure bool
+var keepDownloadFolder bool
 
 type flipbook struct {
 	URL       *url.URL
@@ -34,6 +35,7 @@ func init() {
 	flag.StringVar(&tempDownloadFolder, "temp-download-folder", "", "Specifies the name of the temporary download folder")
 	flag.StringVar(&title, "title", "", "Specifies the name of the generated PDF document (uses book title if not specified)")
 	flag.BoolVar(&insecure, "insecure", false, "Skip certificate validation")
+	flag.BoolVar(&keepDownloadFolder, "keep-download-folder", false, "Keep the temporary download folder instead of deleting it after completion")
 }
 
 func main() {
@@ -69,7 +71,9 @@ func main() {
 		log.Fatal(err)
 	}
 
-	os.RemoveAll(tempDownloadFolder)
+	if !keepDownloadFolder {
+		os.RemoveAll(tempDownloadFolder)
+	}
 }
 
 func prepareDownload(anyflipURL *url.URL) (*flipbook, error) {
