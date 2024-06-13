@@ -11,11 +11,13 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"path/filepath"
 	"strconv"
 	"strings"
 
 	"github.com/asaskevich/govalidator"
-	"github.com/br3w0r/goitopdf/itopdf"
+	"github.com/pdfcpu/pdfcpu/pkg/api"
+	"github.com/pdfcpu/pdfcpu/pkg/pdfcpu"
 	"github.com/schollz/progressbar/v3"
 )
 
@@ -134,16 +136,36 @@ func createPDF(outputFile string, imageDir string) error {
 	outputFile = strings.ReplaceAll(outputFile, "\\", "")
 	outputFile = strings.ReplaceAll(outputFile, ":", "")
 
-	pdf := itopdf.NewInstance()
-	err := pdf.WalkDir(imageDir, nil)
+	if _, err := os.Stat(outputFile); err == nil {
+		fmt.Printf("Output file %s already exists", outputFile)
+		return nil
+	}
+
+	files, err := os.ReadDir(imageDir)
 	if err != nil {
 		return err
 	}
-	err = pdf.Save(outputFile)
-	if err != nil {
-		return err
+
+	var imagePaths []string
+
+	for _, file := range files {
+		if file.IsDir() {
+			continue
+		}
+		ext := filepath.Ext(file.Name())
+		if ext == ".jpg" || ext == ".jpeg" || ext == ".png" || ext == ".webp" {
+			imagePaths = append(imagePaths, filepath.Join(imageDir, file.Name()))
+		}
 	}
-	return nil
+
+	if len(imagePaths) == 0 {
+		return fmt.Errorf("no images found in path %s", imageDir)
+	}
+
+	impConf := pdfcpu.DefaultImportConfig()
+	err = api.ImportImagesFile(imagePaths, outputFile, impConf, nil)
+
+	return err
 }
 
 func (fb *flipbook) downloadImages(downloadFolder string) error {
