@@ -25,6 +25,7 @@ var title string
 var tempDownloadFolder string
 var insecure bool
 var keepDownloadFolder bool
+var pagesOffset int
 
 type flipbook struct {
 	URL       *url.URL
@@ -39,6 +40,7 @@ func init() {
 	flag.StringVar(&title, "title", "", "Specifies the name of the generated PDF document (uses book title if not specified)")
 	flag.BoolVar(&insecure, "insecure", false, "Skip certificate validation")
 	flag.BoolVar(&keepDownloadFolder, "keep-download-folder", false, "Keep the temporary download folder instead of deleting it after completion")
+	flag.IntVar(&pagesOffset, "pages-offset", 0, "Offset the page numbers by this amount")
 }
 
 func main() {
@@ -107,6 +109,14 @@ func prepareDownload(anyflipURL *url.URL) (*flipbook, error) {
 
 	newFlipbook.title = govalidator.SafeFileName(title)
 	newFlipbook.pageCount, err = getPageCount(configjs)
+	if err != nil {
+		return nil, err
+	}
+
+	if pagesOffset > 0 && newFlipbook.pageCount < pagesOffset {
+		return nil, errors.New("pages offset is greater than the total number of pages [" + strconv.Itoa(newFlipbook.pageCount) + "]")
+	}
+
 	pageFileNames := getPageFileNames(configjs)
 
 	downloadURL, _ := url.Parse("https://online.anyflip.com/")
@@ -169,9 +179,20 @@ func createPDF(outputFile string, imageDir string) error {
 }
 
 func (fb *flipbook) downloadImages(downloadFolder string) error {
-	err := os.Mkdir(downloadFolder, os.ModePerm)
-	if err != nil {
-		return err
+	needCreateFolder := true
+	if pagesOffset > 0 {
+		fmt.Printf("Skipping %d pages\n", pagesOffset)
+
+		if _, err := os.Stat(downloadFolder); err == nil {
+			needCreateFolder = false
+		}
+	}
+
+	if needCreateFolder {
+		err := os.Mkdir(downloadFolder, os.ModePerm)
+		if err != nil {
+			return err
+		}
 	}
 
 	bar := progressbar.NewOptions(fb.pageCount,
@@ -181,7 +202,12 @@ func (fb *flipbook) downloadImages(downloadFolder string) error {
 		progressbar.OptionSetDescription("Downloading"),
 	)
 
-	for page := 0; page < fb.pageCount; page++ {
+	pageIndex := 0
+	if pagesOffset > 0 {
+		pageIndex = pagesOffset - 1
+	}
+
+	for page := pageIndex; page < fb.pageCount; page++ {
 		downloadURL := fb.pageURLs[page]
 		response, err := http.Get(downloadURL)
 		if err != nil {
