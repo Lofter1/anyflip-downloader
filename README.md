@@ -61,3 +61,22 @@ The default temporary download folder path will be the title of the book. Howeve
 anyflip-downloader -temp-download-folder <temp folder name> <url to book>
 ```
 
+### Advanced file download options
+
+#### Parallel retrieval
+By default, downloads are performed in a single thread. To improve performance, multiple pages can be downloaded simultaneously. Use the `-threads` flag to control the number of parallel jobs.
+```sh
+anyflip-downloader -threads <number of parallel jobs> <url to book>
+```
+
+#### Download retries
+Occasionally, a request may fail due to temporary issues such as timeouts. Use the `-retries` flag to specify how many times a failed page should be retried before giving up:
+```sh
+anyflip-downloader -retires <number of attempts> <url to book>
+```
+
+#### Retry delay
+To avoid overwhelming the server or triggering rate limits, you can introduce a delay between retry attempts. The `-waitretry` flag accepts any valid Go duration format (e.g., 500ms, 2s, 1m).
+```sh
+anyflip-downloader -waitretry <duration> <url to book>
+```

@@ -249,7 +249,7 @@ func (fb *flipbook) downloadPage(page int, folder string, options downloadOption
 	var resp *http.Response
 	var err error
 
-	for attempt := 1; attempt <= options.retries; attempt++ {
+	for attempt := 0; attempt <= options.retries; attempt++ {
 		resp, err = http.Get(downloadURL)
 		if err == nil {
 			break
