@@ -38,7 +38,7 @@ type flipbook struct {
 	pageURLs  []string
 }
 
-type donwloadOptions struct {
+type downloadOptions struct {
 	threads    int
 	retries    int
 	retryDelay time.Duration
@@ -78,7 +78,7 @@ func main() {
 	}
 	outputFile := title + ".pdf"
 
-	err = flipbook.downloadImages(tempDownloadFolder, donwloadOptions{threads: donwloadThreads, retries: downloadRetries, retryDelay: downloadRetryDelay})
+	err = flipbook.downloadImages(tempDownloadFolder, downloadOptions{threads: donwloadThreads, retries: downloadRetries, retryDelay: downloadRetryDelay})
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -182,7 +182,7 @@ func createPDF(outputFile string, imageDir string) error {
 	return err
 }
 
-func (fb *flipbook) downloadImages(downloadFolder string, options donwloadOptions) error {
+func (fb *flipbook) downloadImages(downloadFolder string, options downloadOptions) error {
 	err := os.Mkdir(downloadFolder, os.ModePerm)
 	if err != nil {
 		return err
@@ -199,7 +199,6 @@ func (fb *flipbook) downloadImages(downloadFolder string, options donwloadOption
 	downloadErrors := make(chan error)
 
 	var wg sync.WaitGroup
-	wg.Add(options.threads)
 
 	// Generate pages to download
 	go func() {
@@ -209,56 +208,20 @@ func (fb *flipbook) downloadImages(downloadFolder string, options donwloadOption
 		close(downloadPages)
 	}()
 
-	for thread := 0; thread < options.threads; thread++ {
-		go func() {
-			defer wg.Done()
-
-			for page := range downloadPages {
-				func() {
-					downloadURL := fb.pageURLs[page]
-
-					var response *http.Response
-					var err error
-
-					for attempt := 1; attempt <= options.retries; attempt++ {
-						response, err = http.Get(downloadURL)
-						if err == nil {
-							break
-						}
-
-						if attempt < options.retries {
-							time.Sleep(options.retryDelay)
-						} else {
-							downloadErrors <- fmt.Errorf("download failed after %d attempts: %w", options.retries, err)
-							return
-						}
-					}
-					defer response.Body.Close()
-
-					if response.StatusCode != http.StatusOK {
-						downloadErrors <- fmt.Errorf("during download from %s received non-200 response: %s", downloadURL, response.Status)
-						return
-					}
-
-					extension := path.Ext(downloadURL)
-					filename := fmt.Sprintf("%04d%v", page, extension)
-					file, err := os.Create(path.Join(downloadFolder, filename))
-					if err != nil {
-						downloadErrors <- err
-						return
-					}
-					defer file.Close()
-
-					_, err = io.Copy(file, response.Body)
-					if err != nil {
-						downloadErrors <- err
-						return
-					}
-
-					bar.Add(1)
-				}()
+	downloadWorker := func() {
+		defer wg.Done()
+		for page := range downloadPages {
+			if err := fb.downloadPage(page, downloadFolder, options); err != nil {
+				downloadErrors <- err
+			} else {
+				bar.Add(1)
 			}
-		}()
+		}
+	}
+
+	wg.Add(options.threads)
+	for thread := 0; thread < options.threads; thread++ {
+		go downloadWorker()
 	}
 
 	// Wait for all downloads to finish
@@ -276,6 +239,44 @@ func (fb *flipbook) downloadImages(downloadFolder string, options donwloadOption
 	fmt.Println()
 	if len(errors) > 0 {
 		return errors[0]
+	}
+	return nil
+}
+
+func (fb *flipbook) downloadPage(page int, folder string, options downloadOptions) error {
+	downloadURL := fb.pageURLs[page]
+
+	var resp *http.Response
+	var err error
+
+	for attempt := 1; attempt <= options.retries; attempt++ {
+		resp, err = http.Get(downloadURL)
+		if err == nil {
+			break
+		}
+		time.Sleep(options.retryDelay)
+	}
+
+	if err != nil {
+		return fmt.Errorf("download failed for %s after %d attempts: %w", downloadURL, options.retries, err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("non-200 response from %s: %s", downloadURL, resp.Status)
+	}
+
+	filename := fmt.Sprintf("%04d%s", page, path.Ext(downloadURL))
+	filepath := path.Join(folder, filename)
+	file, err := os.Create(filepath)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	_, err = io.Copy(file, resp.Body)
+	if err != nil {
+		return err
 	}
 	return nil
 }
