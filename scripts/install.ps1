@@ -32,13 +32,14 @@ $latestRelease = Invoke-RestMethod -Uri $releaseUrl
 # Get the download URL for the latest release asset (assuming it's a tar.gz file)
 $downloadUrl = $latestRelease.assets | Where-Object { $_.name -like "*windows_$architecture.tar.gz" } | Select-Object -ExpandProperty browser_download_url
 
+$installFolder = "$env:LocalAppData\anyflip-downloader"
 # Define the folder where you want to install the application
-param(
-    [Parameter(Mandatory=$true)]
-    [ValidateNotNullorEmpty]
-    [string]
-    $installFolder
-)
+#param(
+#    [Parameter(Mandatory=$true)]
+#    [ValidateNotNullorEmpty]
+#    [string]
+#    $installFolder
+#)
 
 # Create the installation folder if it doesn't exist
 if (-not (Test-Path -Path $installFolder -PathType Container)) {
