@@ -2,6 +2,10 @@ package main
 
 import (
 	"errors"
+	"io"
+	"net/http"
+	"net/url"
+	"path"
 	"regexp"
 	"strconv"
 	"strings"
@@ -56,4 +60,25 @@ func getPageCount(configjs string) (int, error) {
 
 	match = strings.ReplaceAll(match, "\"", "")
 	return strconv.Atoi(match)
+}
+
+func downloadConfigJSFile(bookURL *url.URL) (string, error) {
+	configjsURL, err := url.Parse("https://online.anyflip.com")
+	if err != nil {
+		return "", err
+	}
+	configjsURL.Path = path.Join(bookURL.Path, "mobile", "javascript", "config.js")
+	resp, err := http.Get(configjsURL.String())
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return "", errors.New("received non-200 response:" + resp.Status)
+	}
+	configjs, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+	return string(configjs), nil
 }
