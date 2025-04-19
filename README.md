@@ -61,6 +61,17 @@ The default temporary download folder path will be the title of the book. Howeve
 anyflip-downloader -temp-download-folder <temp folder name> <url to book>
 ```
 
+### Define converting chunk size
+
+By default, anyflip downloader will convert 10 images at a time. You can tell anyflip to convert more or less images at a time.
+
+A lower number will result in less memory usage, but more writes to the drive, and therefore might increase time to convert.
+A higher number will result in more memory usage, but less writes and might increase converting speed. If the number is higher than the total amount of pages, the amount of pages currently being converted is automatically taken instead.
+
+```sh
+anyflip-downloader -chunksize <chunkzise> <url to book>
+```
+
 ### Advanced file download options
 
 #### Parallel retrieval

@@ -72,6 +72,7 @@ func (fb *flipbook) downloadImages(downloadFolder string, options downloadOption
 		progressbar.OptionShowCount(),
 		progressbar.OptionSetDescription("Downloading"),
 	)
+	defer bar.Close()
 
 	downloadPages := make(chan int)
 	downloadErrors := make(chan error)

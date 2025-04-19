@@ -15,6 +15,7 @@ import (
 
 	"github.com/pdfcpu/pdfcpu/pkg/api"
 	"github.com/pdfcpu/pdfcpu/pkg/pdfcpu"
+	"github.com/schollz/progressbar/v3"
 )
 
 var title string
@@ -24,6 +25,7 @@ var keepDownloadFolder bool
 var donwloadThreads int
 var downloadRetries int
 var downloadRetryDelay time.Duration
+var chunkSize uint
 
 type flipbook struct {
 	URL       *url.URL
@@ -47,6 +49,7 @@ func init() {
 	flag.IntVar(&donwloadThreads, "threads", 1, "Number of parallel download processes")
 	flag.IntVar(&downloadRetries, "retries", 1, "Number of download retries")
 	flag.DurationVar(&downloadRetryDelay, "waitretry", time.Second, "Wait time between download retries")
+	flag.UintVar(&chunkSize, "chunksize", 10, "Amount of images converted at once. Higher amount amount will end in less write actions but more memory usage")
 }
 
 func main() {
@@ -84,7 +87,7 @@ func run() {
 		log.Fatal(err)
 	}
 	fmt.Println("Converting to pdf")
-	err = createPDF(outputFile, tempDownloadFolder)
+	err = createPDF(outputFile, tempDownloadFolder, int(chunkSize))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -92,6 +95,8 @@ func run() {
 	if !keepDownloadFolder {
 		os.RemoveAll(tempDownloadFolder)
 	}
+
+	fmt.Println("Done")
 }
 
 func printUsage() {
@@ -102,13 +107,13 @@ func printUsage() {
 	flag.PrintDefaults()
 }
 
-func createPDF(outputFile string, imageDir string) error {
+func createPDF(outputFile string, imageDir string, chunkSize int) error {
 	outputFile = strings.ReplaceAll(outputFile, "'", "")
 	outputFile = strings.ReplaceAll(outputFile, "\\", "")
 	outputFile = strings.ReplaceAll(outputFile, ":", "")
 
 	if _, err := os.Stat(outputFile); err == nil {
-		fmt.Printf("Output file %s already exists", outputFile)
+		fmt.Printf("Output file %s already exists\n", outputFile)
 		return nil
 	}
 
@@ -133,8 +138,24 @@ func createPDF(outputFile string, imageDir string) error {
 		return fmt.Errorf("no images found in path %s", imageDir)
 	}
 
-	impConf := pdfcpu.DefaultImportConfig()
-	err = api.ImportImagesFile(imagePaths, outputFile, impConf, nil)
+	bar := progressbar.NewOptions(len(imagePaths),
+		progressbar.OptionFullWidth(),
+		progressbar.OptionSetPredictTime(false),
+		progressbar.OptionShowCount(),
+		progressbar.OptionSetDescription("Converting"),
+	)
+	defer bar.Close()
 
+	impConf := pdfcpu.DefaultImportConfig()
+
+	for i := 0; i < len(imagePaths); i += chunkSize {
+		end := min(i+chunkSize, len(imagePaths))
+
+		imagePathChunk := imagePaths[i:end]
+		err = api.ImportImagesFile(imagePathChunk, outputFile, impConf, nil)
+		bar.Add(min(chunkSize, len(imagePaths)-i))
+	}
+
+	fmt.Println()
 	return err
 }
