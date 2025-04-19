@@ -57,6 +57,10 @@ func init() {
 
 func main() {
 	flag.Parse()
+	run()
+}
+
+func run() {
 	anyflipURL, err := url.Parse(flag.Args()[0])
 	if err != nil {
 		log.Fatal(err)
