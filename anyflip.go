@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -57,6 +58,11 @@ func prepareDownload(anyflipURL *url.URL) (*flipbook, error) {
 
 func sanitizeURL(anyflipURL *url.URL) {
 	bookURLPathElements := strings.Split(anyflipURL.Path, "/")
+	
+	if len(bookURLPathElements) <= 2 {
+		log.Fatal("Invalid anyflip URL")
+	}
+
 	anyflipURL.Path = path.Join("/", bookURLPathElements[1], bookURLPathElements[2])
 }
 
