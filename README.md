@@ -102,7 +102,7 @@ If you are familiar with docker you can always execute
 docker build -t anyflip-downloader .
 ```
 
-And run it bo doing
+And run it by doing
 
 ```sh
 docker run --rm -v "$(pwd)":/data anyflip-downloader <url to book>
