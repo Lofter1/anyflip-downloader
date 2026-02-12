@@ -91,3 +91,25 @@ To avoid overwhelming the server or triggering rate limits, you can introduce a 
 ```sh
 anyflip-downloader -waitretry <duration> <url to book>
 ```
+
+
+### Docker usage:
+
+If you are familiar with docker you can always execute
+
+
+```sh
+docker build -t anyflip-downloader .
+```
+
+And run it by doing
+
+```sh
+docker run --rm -v "$(pwd)":/data anyflip-downloader <url to book>
+```
+
+You can also combine this comand with any of the above for example:
+
+```sh
+docker run --rm -v "$(pwd)":/data anyflip-downloader -title <your book title> <url to book>
+```

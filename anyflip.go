@@ -123,7 +123,7 @@ func (fb *flipbook) downloadImages(downloadFolder string, options downloadOption
 }
 
 func (fb *flipbook) downloadPage(page int, folder string, options downloadOptions) error {
-	downloadURL := fb.pageURLs[page]
+	downloadURL := cleanDownloadURL(fb.pageURLs[page])
 
 	var resp *http.Response
 	var err error
@@ -158,4 +158,28 @@ func (fb *flipbook) downloadPage(page int, folder string, options downloadOption
 		return err
 	}
 	return nil
+}
+
+// cleanDownloadURL elimina secuencias problemáticas de la URL de descarga
+func cleanDownloadURL(rawURL string) string {
+	// Decodifica la URL por si hay caracteres escapados
+	decoded, err := url.PathUnescape(rawURL)
+	if err != nil {
+		decoded = rawURL
+	}
+	// Reemplaza las secuencias problemáticas
+	decoded = strings.ReplaceAll(decoded, "..\\/files\\/large\\/", "/")
+	decoded = strings.ReplaceAll(decoded, "..%5C/files%5C/large%5C/", "/")
+	decoded = strings.ReplaceAll(decoded, "..%5C", "/")
+	decoded = strings.ReplaceAll(decoded, "files%5C/large%5C/", "")
+	decoded = strings.ReplaceAll(decoded, "files\\/large\\/", "")
+	// Elimina cualquier barra invertida restante
+	decoded = strings.ReplaceAll(decoded, "\\", "/")
+	// Elimina dobles barras
+	decoded = strings.ReplaceAll(decoded, "//", "/")
+	// Corrige el esquema si se alteró
+	if strings.HasPrefix(decoded, "https:/") && !strings.HasPrefix(decoded, "https://") {
+		decoded = strings.Replace(decoded, "https:/", "https://", 1)
+	}
+	return decoded
 }
