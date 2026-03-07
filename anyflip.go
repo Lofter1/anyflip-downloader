@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -34,7 +35,19 @@ func prepareDownload(anyflipURL *url.URL) (*flipbook, error) {
 		}
 	}
 
-	newFlipbook.title = govalidator.SafeFileName(title)
+	safeTitle := govalidator.SafeFileName(title)
+	if safeTitle == "" {
+		safeTitle = path.Base(anyflipURL.Path)
+	}
+	if safeTitle == "" || safeTitle == "." {
+		safeTitle = "anyflip-download"
+	}
+	// Trim trailing dots/spaces - Windows strips these and causes "path not found"
+	safeTitle = strings.Trim(strings.TrimSpace(safeTitle), ".")
+	if safeTitle == "" {
+		safeTitle = "anyflip-download"
+	}
+	newFlipbook.title = safeTitle
 	newFlipbook.pageCount, err = getPageCount(configjs)
 	pageFileNames := getPageFileNames(configjs)
 
@@ -61,10 +74,16 @@ func sanitizeURL(anyflipURL *url.URL) {
 }
 
 func (fb *flipbook) downloadImages(downloadFolder string, options downloadOptions) error {
-	err := os.Mkdir(downloadFolder, os.ModePerm)
+	// Use absolute path to avoid "path not found" on Windows when cwd has issues
+	absFolder, err := filepath.Abs(downloadFolder)
 	if err != nil {
-		return err
+		return fmt.Errorf("invalid download path %q: %w", downloadFolder, err)
 	}
+	err = os.MkdirAll(absFolder, os.ModePerm)
+	if err != nil {
+		return fmt.Errorf("cannot create folder %q: %w", absFolder, err)
+	}
+	downloadFolder = absFolder
 
 	bar := progressbar.NewOptions(fb.pageCount,
 		progressbar.OptionFullWidth(),
@@ -146,8 +165,8 @@ func (fb *flipbook) downloadPage(page int, folder string, options downloadOption
 	}
 
 	filename := fmt.Sprintf("%04d%s", page, path.Ext(downloadURL))
-	filepath := path.Join(folder, filename)
-	file, err := os.Create(filepath)
+	filePath := filepath.Join(folder, filename)
+	file, err := os.Create(filePath)
 	if err != nil {
 		return err
 	}
