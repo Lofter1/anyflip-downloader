@@ -129,7 +129,15 @@ func (fb *flipbook) downloadPage(page int, folder string, options downloadOption
 	var err error
 
 	for attempt := 0; attempt <= options.retries; attempt++ {
-		resp, err = http.Get(downloadURL)
+		var req *http.Request
+		req, err = http.NewRequest("GET", downloadURL, nil)
+		if err != nil {
+			return err
+		}
+		req.Header.Set("Referer", fb.URL.String())
+		req.Header.Set("User-Agent", "Mozilla/5.0")
+
+		resp, err = http.DefaultClient.Do(req)
 		if err == nil {
 			break
 		}
@@ -160,26 +168,36 @@ func (fb *flipbook) downloadPage(page int, folder string, options downloadOption
 	return nil
 }
 
-// cleanDownloadURL elimina secuencias problemáticas de la URL de descarga
+// cleanDownloadURL removes problematic sequences from the download URL
+// and resolves any "../" path traversal by traversing up the directory structure.
 func cleanDownloadURL(rawURL string) string {
-	// Decodifica la URL por si hay caracteres escapados
 	decoded, err := url.PathUnescape(rawURL)
 	if err != nil {
 		decoded = rawURL
 	}
-	// Reemplaza las secuencias problemáticas
-	decoded = strings.ReplaceAll(decoded, "..\\/files\\/large\\/", "/")
-	decoded = strings.ReplaceAll(decoded, "..%5C/files%5C/large%5C/", "/")
-	decoded = strings.ReplaceAll(decoded, "..%5C", "/")
-	decoded = strings.ReplaceAll(decoded, "files%5C/large%5C/", "")
-	decoded = strings.ReplaceAll(decoded, "files\\/large\\/", "")
-	// Elimina cualquier barra invertida restante
+	// Normalize backslashes to forward slashes before parsing
 	decoded = strings.ReplaceAll(decoded, "\\", "/")
-	// Elimina dobles barras
-	decoded = strings.ReplaceAll(decoded, "//", "/")
-	// Corrige el esquema si se alteró
-	if strings.HasPrefix(decoded, "https:/") && !strings.HasPrefix(decoded, "https://") {
-		decoded = strings.Replace(decoded, "https:/", "https://", 1)
+
+	u, err := url.Parse(decoded)
+	if err != nil {
+		return decoded
 	}
-	return decoded
+
+	// Clean the path: resolves ".." and "." segments and removes double slashes
+	u.Path = path.Clean(u.Path)
+
+	// Deduplicate consecutive identical path segments produced by sites that
+	// generate URLs like "files/large/../files/mobile/" where resolving ".."
+	// lands back in "files/" and then appends another "files/" segment.
+	segments := strings.Split(u.Path, "/")
+	deduped := segments[:0]
+	for i, seg := range segments {
+		if i > 0 && seg == segments[i-1] && seg != "" {
+			continue
+		}
+		deduped = append(deduped, seg)
+	}
+	u.Path = strings.Join(deduped, "/")
+
+	return u.String()
 }
