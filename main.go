@@ -58,6 +58,10 @@ func main() {
 }
 
 func run() {
+	if len(flag.Args()) == 0 {
+		log.Fatal("No URL provided")
+	}
+
 	anyflipURL, err := url.Parse(flag.Args()[0])
 	if err != nil {
 		log.Fatal(err)
