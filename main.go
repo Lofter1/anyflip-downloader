@@ -83,6 +83,11 @@ func run() {
 	if tempDownloadFolder == "" {
 		tempDownloadFolder = flipbook.title
 	}
+	// Use absolute path to avoid Windows "path not found" errors
+	tempDownloadFolder, err = filepath.Abs(tempDownloadFolder)
+	if err != nil {
+		log.Fatalf("invalid download path: %v", err)
+	}
 	outputFile := title + ".pdf"
 
 	err = flipbook.downloadImages(
