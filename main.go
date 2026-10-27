@@ -162,7 +162,16 @@ func createPDF(outputFile string, imageDir string, chunkSize int) error {
 	for i := 0; i < len(imagePaths); i += chunkSize {
 		end := min(i+chunkSize, len(imagePaths))
 
-		imagePathChunk := imagePaths[i:end]
+		imagePathChunk := make([]string, 0, end-i)
+		for _, imagePath := range imagePaths[i:end] {
+			if filepath.Ext(imagePath) == ".webp" {
+				imagePath, err = convertWebPToPNG(imagePath)
+				if err != nil {
+					return err
+				}
+			}
+			imagePathChunk = append(imagePathChunk, imagePath)
+		}
 		err = api.ImportImagesFile(imagePathChunk, outputFile, impConf, nil)
 		bar.Add(min(chunkSize, len(imagePaths)-i))
 	}
