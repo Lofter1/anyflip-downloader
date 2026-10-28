@@ -45,6 +45,16 @@ go install github.com/Lofter1/anyflip-downloader@latest
 anyflip-downloader <url to book>
 ```
 
+### Resume an interrupted download
+
+If a download is interrupted, the downloaded page images remain in the temporary download folder. Run the command again with `-pages-offset` set to the 1-based page number where downloading should resume. The same temporary download folder must be used so the earlier pages are included in the resulting PDF.
+
+```sh
+anyflip-downloader -pages-offset 73 <url to book>
+```
+
+This resumes at page 73, skipping pages 1–72. If you set `-temp-download-folder` on the first run, provide the same folder on the retry. The folder is removed after a successful conversion unless `-keep-download-folder` is set.
+
 ### Set title manually
 
 If you do not want to use the book title from anyflip, you can change it using the `-title` flag.

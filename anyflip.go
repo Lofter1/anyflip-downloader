@@ -47,8 +47,16 @@ func prepareDownload(anyflipURL *url.URL) (*flipbook, error) {
 	if safeTitle == "" {
 		safeTitle = "anyflip-download"
 	}
+
 	newFlipbook.title = safeTitle
 	newFlipbook.pageCount, err = getPageCount(configjs)
+	if err != nil {
+		return nil, err
+	}
+	if pagesOffset > newFlipbook.pageCount {
+		return nil, fmt.Errorf("pages offset %d exceeds the total number of pages (%d)", pagesOffset, newFlipbook.pageCount)
+	}
+
 	pageFileNames := getPageFileNames(configjs)
 
 	downloadURL, _ := url.Parse("https://online.anyflip.com/")
@@ -74,6 +82,10 @@ func sanitizeURL(anyflipURL *url.URL) {
 }
 
 func (fb *flipbook) downloadImages(downloadFolder string, options downloadOptions) error {
+	if options.startPage < 0 || options.startPage >= fb.pageCount {
+		return fmt.Errorf("start page index %d is outside the book's page range", options.startPage)
+	}
+
 	// Use absolute path to avoid "path not found" on Windows when cwd has issues
 	absFolder, err := filepath.Abs(downloadFolder)
 	if err != nil {
@@ -85,7 +97,11 @@ func (fb *flipbook) downloadImages(downloadFolder string, options downloadOption
 	}
 	downloadFolder = absFolder
 
-	bar := progressbar.NewOptions(fb.pageCount,
+	if options.startPage > 0 {
+		fmt.Printf("Skipping %d pages\n", options.startPage)
+	}
+
+	bar := progressbar.NewOptions(fb.pageCount-options.startPage,
 		progressbar.OptionFullWidth(),
 		progressbar.OptionSetPredictTime(false),
 		progressbar.OptionShowCount(),
@@ -100,7 +116,7 @@ func (fb *flipbook) downloadImages(downloadFolder string, options downloadOption
 
 	// Generate pages to download
 	go func() {
-		for page := range fb.pageCount {
+		for page := options.startPage; page < fb.pageCount; page++ {
 			downloadPages <- page
 		}
 		close(downloadPages)

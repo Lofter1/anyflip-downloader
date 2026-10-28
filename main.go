@@ -22,6 +22,7 @@ var title string
 var tempDownloadFolder string
 var insecure bool
 var keepDownloadFolder bool
+var pagesOffset int
 var donwloadThreads int
 var downloadRetries int
 var downloadRetryDelay time.Duration
@@ -38,6 +39,7 @@ type downloadOptions struct {
 	threads    int
 	retries    int
 	retryDelay time.Duration
+	startPage  int
 }
 
 func init() {
@@ -46,6 +48,7 @@ func init() {
 	flag.StringVar(&title, "title", "", "Specifies the name of the generated PDF document (uses book title if not specified)")
 	flag.BoolVar(&insecure, "insecure", false, "Skip certificate validation")
 	flag.BoolVar(&keepDownloadFolder, "keep-download-folder", false, "Keep the temporary download folder instead of deleting it after completion")
+	flag.IntVar(&pagesOffset, "pages-offset", 0, "1-based page number to resume from (0 starts at page 1)")
 	flag.IntVar(&donwloadThreads, "threads", 1, "Number of parallel download processes")
 	flag.IntVar(&downloadRetries, "retries", 1, "Number of download retries")
 	flag.DurationVar(&downloadRetryDelay, "waitretry", time.Second, "Wait time between download retries")
@@ -75,6 +78,10 @@ func run() {
 	}
 
 	fmt.Println("Preparing to download")
+	if pagesOffset < 0 {
+		log.Fatal("pages offset must be zero or a valid 1-based page number")
+	}
+
 	flipbook, err := prepareDownload(anyflipURL)
 	if err != nil {
 		log.Fatal(err)
@@ -90,9 +97,13 @@ func run() {
 	}
 	outputFile := title + ".pdf"
 
+	startPage := 0
+	if pagesOffset > 0 {
+		startPage = pagesOffset - 1
+	}
 	err = flipbook.downloadImages(
 		tempDownloadFolder,
-		downloadOptions{threads: donwloadThreads, retries: downloadRetries, retryDelay: downloadRetryDelay},
+		downloadOptions{threads: donwloadThreads, retries: downloadRetries, retryDelay: downloadRetryDelay, startPage: startPage},
 	)
 	if err != nil {
 		log.Fatal(err)
