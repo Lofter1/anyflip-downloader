@@ -2,20 +2,17 @@ package main
 
 import (
 	"crypto/tls"
-	"errors"
 	"flag"
 	"fmt"
-	"io"
 	"log"
 	"net/http"
 	"net/url"
 	"os"
-	"path"
 	"path/filepath"
-	"strconv"
-	"strings"
 
-	"github.com/asaskevich/govalidator"
+	"strings"
+	"time"
+
 	"github.com/pdfcpu/pdfcpu/pkg/api"
 	"github.com/pdfcpu/pdfcpu/pkg/pdfcpu"
 	"github.com/schollz/progressbar/v3"
@@ -26,6 +23,10 @@ var tempDownloadFolder string
 var insecure bool
 var keepDownloadFolder bool
 var pagesOffset int
+var donwloadThreads int
+var downloadRetries int
+var downloadRetryDelay time.Duration
+var chunkSize uint
 
 type flipbook struct {
 	URL       *url.URL
@@ -34,17 +35,38 @@ type flipbook struct {
 	pageURLs  []string
 }
 
+type downloadOptions struct {
+	threads    int
+	retries    int
+	retryDelay time.Duration
+	startPage  int
+}
+
 func init() {
 	flag.Usage = printUsage
 	flag.StringVar(&tempDownloadFolder, "temp-download-folder", "", "Specifies the name of the temporary download folder")
 	flag.StringVar(&title, "title", "", "Specifies the name of the generated PDF document (uses book title if not specified)")
 	flag.BoolVar(&insecure, "insecure", false, "Skip certificate validation")
 	flag.BoolVar(&keepDownloadFolder, "keep-download-folder", false, "Keep the temporary download folder instead of deleting it after completion")
-	flag.IntVar(&pagesOffset, "pages-offset", 0, "Offset the page numbers by this amount")
+	flag.IntVar(&pagesOffset, "pages-offset", 0, "1-based page number to resume from (0 starts at page 1)")
+	flag.IntVar(&donwloadThreads, "threads", 1, "Number of parallel download processes")
+	flag.IntVar(&downloadRetries, "retries", 1, "Number of download retries")
+	flag.DurationVar(&downloadRetryDelay, "waitretry", time.Second, "Wait time between download retries")
+	flag.UintVar(&chunkSize, "chunksize", 10, "Amount of images converted at once. Higher amount amount will end in less write actions but more memory usage")
 }
 
 func main() {
 	flag.Parse()
+	run()
+}
+
+func run() {
+	if flag.NArg() == 0 {
+		fmt.Fprintln(os.Stderr, "error: no URL provided")
+		printUsage()
+		os.Exit(1)
+	}
+
 	anyflipURL, err := url.Parse(flag.Args()[0])
 	if err != nil {
 		log.Fatal(err)
@@ -56,6 +78,10 @@ func main() {
 	}
 
 	fmt.Println("Preparing to download")
+	if pagesOffset < 0 {
+		log.Fatal("pages offset must be zero or a valid 1-based page number")
+	}
+
 	flipbook, err := prepareDownload(anyflipURL)
 	if err != nil {
 		log.Fatal(err)
@@ -64,14 +90,26 @@ func main() {
 	if tempDownloadFolder == "" {
 		tempDownloadFolder = flipbook.title
 	}
+	// Use absolute path to avoid Windows "path not found" errors
+	tempDownloadFolder, err = filepath.Abs(tempDownloadFolder)
+	if err != nil {
+		log.Fatalf("invalid download path: %v", err)
+	}
 	outputFile := title + ".pdf"
 
-	err = flipbook.downloadImages(tempDownloadFolder)
+	startPage := 0
+	if pagesOffset > 0 {
+		startPage = pagesOffset - 1
+	}
+	err = flipbook.downloadImages(
+		tempDownloadFolder,
+		downloadOptions{threads: donwloadThreads, retries: downloadRetries, retryDelay: downloadRetryDelay, startPage: startPage},
+	)
 	if err != nil {
 		log.Fatal(err)
 	}
 	fmt.Println("Converting to pdf")
-	err = createPDF(outputFile, tempDownloadFolder)
+	err = createPDF(outputFile, tempDownloadFolder, int(chunkSize))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -79,6 +117,8 @@ func main() {
 	if !keepDownloadFolder {
 		os.RemoveAll(tempDownloadFolder)
 	}
+
+	fmt.Println("Done")
 }
 
 func printUsage() {
@@ -89,65 +129,13 @@ func printUsage() {
 	flag.PrintDefaults()
 }
 
-func prepareDownload(anyflipURL *url.URL) (*flipbook, error) {
-	var newFlipbook flipbook
-
-	sanitizeURL(anyflipURL)
-	newFlipbook.URL = anyflipURL
-
-	configjs, err := downloadConfigJSFile(anyflipURL)
-	if err != nil {
-		return nil, err
-	}
-
-	if title == "" {
-		title, err = getBookTitle(configjs)
-		if err != nil {
-			title = path.Base(anyflipURL.String())
-		}
-	}
-
-	newFlipbook.title = govalidator.SafeFileName(title)
-	newFlipbook.pageCount, err = getPageCount(configjs)
-	if err != nil {
-		return nil, err
-	}
-
-	if pagesOffset > 0 && newFlipbook.pageCount < pagesOffset {
-		return nil, errors.New("pages offset is greater than the total number of pages [" + strconv.Itoa(newFlipbook.pageCount) + "]")
-	}
-
-	pageFileNames := getPageFileNames(configjs)
-
-	downloadURL, _ := url.Parse("https://online.anyflip.com/")
-	println(newFlipbook.URL.String())
-	if len(pageFileNames) == 0 {
-		for i := 1; i <= newFlipbook.pageCount; i++ {
-			downloadURL.Path = path.Join(newFlipbook.URL.Path, "files", "mobile", strconv.Itoa(i)+".jpg")
-			newFlipbook.pageURLs = append(newFlipbook.pageURLs, downloadURL.String())
-		}
-	} else {
-		for i := 0; i < newFlipbook.pageCount; i++ {
-			downloadURL.Path = path.Join(newFlipbook.URL.Path, "files", "large", pageFileNames[i])
-			newFlipbook.pageURLs = append(newFlipbook.pageURLs, downloadURL.String())
-		}
-	}
-
-	return &newFlipbook, err
-}
-
-func sanitizeURL(anyflipURL *url.URL) {
-	bookURLPathElements := strings.Split(anyflipURL.Path, "/")
-	anyflipURL.Path = path.Join("/", bookURLPathElements[1], bookURLPathElements[2])
-}
-
-func createPDF(outputFile string, imageDir string) error {
+func createPDF(outputFile string, imageDir string, chunkSize int) error {
 	outputFile = strings.ReplaceAll(outputFile, "'", "")
 	outputFile = strings.ReplaceAll(outputFile, "\\", "")
 	outputFile = strings.ReplaceAll(outputFile, ":", "")
 
 	if _, err := os.Stat(outputFile); err == nil {
-		fmt.Printf("Output file %s already exists", outputFile)
+		fmt.Printf("Output file %s already exists\n", outputFile)
 		return nil
 	}
 
@@ -172,89 +160,33 @@ func createPDF(outputFile string, imageDir string) error {
 		return fmt.Errorf("no images found in path %s", imageDir)
 	}
 
-	impConf := pdfcpu.DefaultImportConfig()
-	err = api.ImportImagesFile(imagePaths, outputFile, impConf, nil)
-
-	return err
-}
-
-func (fb *flipbook) downloadImages(downloadFolder string) error {
-	needCreateFolder := true
-	if pagesOffset > 0 {
-		fmt.Printf("Skipping %d pages\n", pagesOffset)
-
-		if _, err := os.Stat(downloadFolder); err == nil {
-			needCreateFolder = false
-		}
-	}
-
-	if needCreateFolder {
-		err := os.Mkdir(downloadFolder, os.ModePerm)
-		if err != nil {
-			return err
-		}
-	}
-
-	bar := progressbar.NewOptions(fb.pageCount,
+	bar := progressbar.NewOptions(len(imagePaths),
 		progressbar.OptionFullWidth(),
 		progressbar.OptionSetPredictTime(false),
 		progressbar.OptionShowCount(),
-		progressbar.OptionSetDescription("Downloading"),
+		progressbar.OptionSetDescription("Converting"),
 	)
+	defer bar.Close()
 
-	pageIndex := 0
-	if pagesOffset > 0 {
-		pageIndex = pagesOffset - 1
+	impConf := pdfcpu.DefaultImportConfig()
+
+	for i := 0; i < len(imagePaths); i += chunkSize {
+		end := min(i+chunkSize, len(imagePaths))
+
+		imagePathChunk := make([]string, 0, end-i)
+		for _, imagePath := range imagePaths[i:end] {
+			if filepath.Ext(imagePath) == ".webp" {
+				imagePath, err = convertWebPToPNG(imagePath)
+				if err != nil {
+					return err
+				}
+			}
+			imagePathChunk = append(imagePathChunk, imagePath)
+		}
+		err = api.ImportImagesFile(imagePathChunk, outputFile, impConf, nil)
+		bar.Add(min(chunkSize, len(imagePaths)-i))
 	}
 
-	for page := pageIndex; page < fb.pageCount; page++ {
-		downloadURL := fb.pageURLs[page]
-		response, err := http.Get(downloadURL)
-		if err != nil {
-			return err
-		}
-
-		if response.StatusCode != http.StatusOK {
-			println("During download from ", downloadURL)
-			return errors.New("Received non-200 response: " + response.Status)
-		}
-
-		extension := path.Ext(downloadURL)
-		filename := fmt.Sprintf("%04d%v", page, extension)
-		file, err := os.Create(path.Join(downloadFolder, filename))
-		if err != nil {
-			return err
-		}
-		defer file.Close()
-
-		_, err = io.Copy(file, response.Body)
-		if err != nil {
-			return err
-		}
-
-		bar.Add(1)
-	}
 	fmt.Println()
-	return nil
-}
-
-func downloadConfigJSFile(bookURL *url.URL) (string, error) {
-	configjsURL, err := url.Parse("https://online.anyflip.com")
-	if err != nil {
-		return "", err
-	}
-	configjsURL.Path = path.Join(bookURL.Path, "mobile", "javascript", "config.js")
-	resp, err := http.Get(configjsURL.String())
-	if err != nil {
-		return "", err
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		return "", errors.New("received non-200 response:" + resp.Status)
-	}
-	configjs, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return "", err
-	}
-	return string(configjs), nil
+	return err
 }

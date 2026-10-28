@@ -45,6 +45,16 @@ go install github.com/Lofter1/anyflip-downloader@latest
 anyflip-downloader <url to book>
 ```
 
+### Resume an interrupted download
+
+If a download is interrupted, the downloaded page images remain in the temporary download folder. Run the command again with `-pages-offset` set to the 1-based page number where downloading should resume. The same temporary download folder must be used so the earlier pages are included in the resulting PDF.
+
+```sh
+anyflip-downloader -pages-offset 73 <url to book>
+```
+
+This resumes at page 73, skipping pages 1–72. If you set `-temp-download-folder` on the first run, provide the same folder on the retry. The folder is removed after a successful conversion unless `-keep-download-folder` is set.
+
 ### Set title manually
 
 If you do not want to use the book title from anyflip, you can change it using the `-title` flag.
@@ -61,3 +71,55 @@ The default temporary download folder path will be the title of the book. Howeve
 anyflip-downloader -temp-download-folder <temp folder name> <url to book>
 ```
 
+### Define converting chunk size
+
+By default, anyflip downloader will convert 10 images at a time. You can tell anyflip to convert more or less images at a time.
+
+A lower number will result in less memory usage, but more writes to the drive, and therefore might increase time to convert.
+A higher number will result in more memory usage, but less writes and might increase converting speed. If the number is higher than the total amount of pages, the amount of pages currently being converted is automatically taken instead.
+
+```sh
+anyflip-downloader -chunksize <chunkzise> <url to book>
+```
+
+### Advanced file download options
+
+#### Parallel retrieval
+By default, downloads are performed in a single thread. To improve performance, multiple pages can be downloaded simultaneously. Use the `-threads` flag to control the number of parallel jobs.
+```sh
+anyflip-downloader -threads <number of parallel jobs> <url to book>
+```
+
+#### Download retries
+Occasionally, a request may fail due to temporary issues such as timeouts. Use the `-retries` flag to specify how many times a failed page should be retried before giving up:
+```sh
+anyflip-downloader -retires <number of attempts> <url to book>
+```
+
+#### Retry delay
+To avoid overwhelming the server or triggering rate limits, you can introduce a delay between retry attempts. The `-waitretry` flag accepts any valid Go duration format (e.g., 500ms, 2s, 1m).
+```sh
+anyflip-downloader -waitretry <duration> <url to book>
+```
+
+
+### Docker usage:
+
+If you are familiar with docker you can always execute
+
+
+```sh
+docker build -t anyflip-downloader .
+```
+
+And run it by doing
+
+```sh
+docker run --rm -v "$(pwd)":/data anyflip-downloader <url to book>
+```
+
+You can also combine this comand with any of the above for example:
+
+```sh
+docker run --rm -v "$(pwd)":/data anyflip-downloader -title <your book title> <url to book>
+```
