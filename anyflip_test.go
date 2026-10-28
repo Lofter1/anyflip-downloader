@@ -1,13 +1,16 @@
 package main
 
 import (
+	"flag"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"os"
 	"path/filepath"
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -77,5 +80,78 @@ func TestDownloadImagesRejectsStartPageOutsideBook(t *testing.T) {
 	err := flipbook.downloadImages(t.TempDir(), downloadOptions{startPage: 2})
 	if err == nil {
 		t.Fatal("expected an out-of-range start page error")
+	}
+}
+
+func TestSanitizeURL(t *testing.T) {
+	tests := []struct {
+		name    string
+		input   string
+		want    string
+		wantErr bool
+	}{
+		{name: "book URL", input: "/book/flipbook/", want: "/book/flipbook"},
+		{name: "URL with extra path", input: "/book/flipbook/files/", want: "/book/flipbook"},
+		{name: "missing flipbook ID", input: "/book/", wantErr: true},
+		{name: "empty path", input: "", wantErr: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			parsedURL := &url.URL{Path: tt.input}
+			err := sanitizeURL(parsedURL)
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("sanitizeURL() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if err == nil && parsedURL.Path != tt.want {
+				t.Errorf("sanitized path = %q, want %q", parsedURL.Path, tt.want)
+			}
+		})
+	}
+
+	if err := sanitizeURL(nil); err == nil {
+		t.Error("sanitizeURL(nil) returned no error")
+	}
+}
+
+func TestRunWithoutURLPrintsUsageAndReturns(t *testing.T) {
+	read, write, err := os.Pipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	oldFlagSet, oldUsage, oldStderr := flag.CommandLine, flag.Usage, os.Stderr
+	defer func() {
+		flag.CommandLine = oldFlagSet
+		flag.Usage = oldUsage
+		os.Stderr = oldStderr
+	}()
+
+	testFlagSet := flag.NewFlagSet("test", flag.ContinueOnError)
+	testFlagSet.SetOutput(write)
+	usageCalled := false
+	flag.Usage = func() {
+		usageCalled = true
+		_, _ = fmt.Fprintln(write, "usage")
+	}
+	flag.CommandLine = testFlagSet
+	os.Stderr = write
+
+	run()
+	if err := write.Close(); err != nil {
+		t.Fatal(err)
+	}
+	output, err := io.ReadAll(read)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !usageCalled {
+		t.Fatal("run() did not print usage")
+	}
+	if !strings.Contains(string(output), "error: no URL provided") {
+		t.Errorf("run() output = %q, want missing-URL message", output)
+	}
+	if !strings.Contains(string(output), "usage") {
+		t.Errorf("run() output = %q, want usage text", output)
 	}
 }

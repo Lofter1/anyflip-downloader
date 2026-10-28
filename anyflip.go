@@ -20,7 +20,9 @@ import (
 func prepareDownload(anyflipURL *url.URL) (*flipbook, error) {
 	var newFlipbook flipbook
 
-	sanitizeURL(anyflipURL)
+	if err := sanitizeURL(anyflipURL); err != nil {
+		return nil, err
+	}
 	newFlipbook.URL = anyflipURL
 
 	configjs, err := downloadConfigJSFile(anyflipURL)
@@ -76,9 +78,19 @@ func prepareDownload(anyflipURL *url.URL) (*flipbook, error) {
 	return &newFlipbook, err
 }
 
-func sanitizeURL(anyflipURL *url.URL) {
-	bookURLPathElements := strings.Split(anyflipURL.Path, "/")
-	anyflipURL.Path = path.Join("/", bookURLPathElements[1], bookURLPathElements[2])
+func sanitizeURL(anyflipURL *url.URL) error {
+	if anyflipURL == nil {
+		return fmt.Errorf("invalid anyflip URL: URL is empty")
+	}
+
+	bookPath := strings.Trim(path.Clean(anyflipURL.Path), "/")
+	bookURLPathElements := strings.Split(bookPath, "/")
+	if bookPath == "" || len(bookURLPathElements) < 2 {
+		return fmt.Errorf("invalid anyflip URL path %q: expected a book ID and flipbook ID", anyflipURL.Path)
+	}
+
+	anyflipURL.Path = path.Join("/", bookURLPathElements[0], bookURLPathElements[1])
+	return nil
 }
 
 func (fb *flipbook) downloadImages(downloadFolder string, options downloadOptions) error {

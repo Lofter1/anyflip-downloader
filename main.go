@@ -63,8 +63,8 @@ func main() {
 func run() {
 	if flag.NArg() == 0 {
 		fmt.Fprintln(os.Stderr, "error: no URL provided")
-		printUsage()
-		os.Exit(1)
+		flag.Usage()
+		return
 	}
 
 	anyflipURL, err := url.Parse(flag.Args()[0])
