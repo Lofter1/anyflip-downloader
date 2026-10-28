@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"crypto/tls"
 	"flag"
 	"fmt"
@@ -183,7 +184,7 @@ func createPDF(outputFile string, imageDir string, chunkSize int) error {
 			}
 			imagePathChunk = append(imagePathChunk, imagePath)
 		}
-		err = api.ImportImagesFile(imagePathChunk, outputFile, impConf, nil)
+		err = api.ImportImagesFile(context.Background(), imagePathChunk, outputFile, impConf, nil)
 		bar.Add(min(chunkSize, len(imagePaths)-i))
 	}
 
